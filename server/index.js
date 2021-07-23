@@ -1,9 +1,14 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const pino = require('express-pino-logger')();
+
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const notifyServiceSid = process.env.NOTIFY_SERVICE_SID;
+
 const client = require('twilio')(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
+  accountSid,
+  authToken
 );
 
 const app = express();
@@ -18,6 +23,7 @@ app.get('/api/greeting', (req, res) => {
 });
 
 app.post('/api/messages', (req, res) => {
+  console.log(req.body)
   res.header('Content-Type', 'application/json');
   client.messages
     .create({
@@ -33,6 +39,19 @@ app.post('/api/messages', (req, res) => {
       res.send(JSON.stringify({ success: false }));
     });
 });
+
+app.post('/api/bulk_messages', (req, res) => {
+  console.log(req.body)
+  res.header('Content-Type', 'application/json');
+  client.notify.services(notifyServiceSid)
+      .notifications.create({
+        toBinding: JSON.stringify(req.body[0]),
+        body: 'This is Nick. I just sent a bulk text message!'
+      })
+      .then(notification => console.log(notification.sid))
+      .catch(error => console.log("send error: ", error));
+});
+
 
 app.listen(3001, () =>
   console.log('Express server is running on localhost:3001')

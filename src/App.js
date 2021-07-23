@@ -128,15 +128,13 @@ const App = () => {
       binding.push({binding_type: 'sms', address: `+1${contact.phone.split("-").join("")}`})
     })
 
-    const client = require('twilio')(accountSid, authToken);
-
-    client.notify.services(notifyServiceSid)
-      .notifications.create({
-        toBinding: JSON.stringify(binding),
-        body: 'You just sent your first message with the Passthrough API!'
-      })
-      .then(notification => console.log(notification.sid))
-      .catch(error => console.log("send error: ", error));
+    fetch('/api/bulk_messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(binding)
+    })
   }
 
   const SendMessageModal = () => {
