@@ -18,8 +18,17 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import { RiMailDownloadFill } from "react-icons/ri";
 import { RiMessage2Fill } from "react-icons/ri";
+import { RiCheckFill } from "react-icons/ri";
 import SMSForm from './SMSForm';
 import './App.css';
+
+  
+const accountSid = process.env.TWILIO_ACCOUNT_SID || "";
+const authToken = process.env.TWILIO_AUTH_TOKEN || "";
+const notifyServiceSid = process.env.NOTIFY_SERVICE_SID || "";
+
+
+
 
 const useStyles = makeStyles({
   table: {
@@ -63,7 +72,7 @@ const contactData = [
     last_name: "Coyote",
     organization: 'ACME Corporation',
     photo: '',
-    workPhone:'876-555-1212',
+    workPhone:'512-945-3874',
     email: 'beepbeep@zoom.com',
     birthday: new Date(1985, 0, 1),
     title: 'Engineer',
@@ -88,6 +97,12 @@ function createData(id, first, last, email, phone) {
 const App = () => {
   const [show, setShow] = useState(false);
   const [currentContact, setCurrentContact] = useState(false);
+  const [currentMultiContact, setCurrentMultiContact] = useState([]);
+  const [mulitSelect, setMultiSelect] = useState({
+    1: false,
+    2: false,
+    3: false,
+  });
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -95,6 +110,33 @@ const App = () => {
   const handleSendMessage = (contact) => {
     setCurrentContact(contact)
     setShow(true)
+  }
+
+  const handleCheckContact = (contact) => {
+    setMultiSelect(prev => ({
+      ...prev,
+      [contact.id]: !mulitSelect[contact.id]
+    }))
+    let selected = [...currentMultiContact]
+    setCurrentMultiContact([...selected, contact])
+    // setShow(true)
+  }
+
+  const handleSendGroup = () => {
+    let binding = []
+    currentMultiContact.forEach(contact => {
+      binding.push({binding_type: 'sms', address: `+1${contact.phone.split("-").join("")}`})
+    })
+
+    const client = require('twilio')(accountSid, authToken);
+
+    client.notify.services(notifyServiceSid)
+      .notifications.create({
+        toBinding: JSON.stringify(binding),
+        body: 'You just sent your first message with the Passthrough API!'
+      })
+      .then(notification => console.log(notification.sid))
+      .catch(error => console.log("send error: ", error));
   }
 
   const SendMessageModal = () => {
@@ -194,6 +236,9 @@ const App = () => {
                   <TableCell align="right">Last Name</TableCell>
                   <TableCell align="right">Email</TableCell>
                   <TableCell align="right">Phone</TableCell>
+                  <TableCell align="center">Download</TableCell>
+                  <TableCell align="center">Message</TableCell>
+                  <TableCell align="left">Group Select</TableCell>
                 
                 </TableRow>
               </TableHead>
@@ -209,11 +254,22 @@ const App = () => {
                     <TableCell align="right"><a href={`tel:+1${row.phone.split("-").join("")}`}>{row.phone}</a></TableCell>
                     <TableCell align="center"><h2 className="text-danger clickable"><RiMailDownloadFill onClick={() => {CreateVCard(row.id)}} /></h2></TableCell>
                     <TableCell align="center"><h2 className="text-danger clickable"><RiMessage2Fill onClick={() => handleSendMessage(row)} /></h2></TableCell>
+                    <TableCell align="right">{mulitSelect[row.id] ? <div className="checkbox clickable" onClick={() => handleCheckContact(row)}><h4 className="text-danger"><RiCheckFill  /></h4></div> : <div className="checkbox clickable" onClick={() => handleCheckContact(row)}></div>}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
+
+          {currentMultiContact.length > 0 &&
+          <Row className="mt-4 w-100 text-center">
+             <h3>Selected Contacts</h3>
+             {currentMultiContact.map((contact) =>(
+              <h5>{contact.first} {contact.last}</h5>
+             ))}
+             <Button onClick={handleSendGroup}>send group message</Button>
+          </Row>
+          }
 
           <SendMessageModal 
             show={show}
