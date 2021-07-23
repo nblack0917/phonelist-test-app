@@ -6,7 +6,7 @@ class SMSForm extends Component {
     super(props);
     this.state = {
       message: {
-        to: '',
+        to: this.props.contact.phone.split("-").join(""),
         body: ''
       },
       submitting: false,
@@ -16,6 +16,9 @@ class SMSForm extends Component {
     this.onHandleChange = this.onHandleChange.bind(this);
   }
 
+  componentDidMount(props) {
+    console.log(this.props.contact)
+  }
   onSubmit(event) {
     event.preventDefault();
     this.setState({ submitting: true });
@@ -43,6 +46,7 @@ class SMSForm extends Component {
             submitting: false
           });
         }
+        this.props.handleClose()
       });
   }
 
@@ -65,7 +69,7 @@ class SMSForm extends Component {
             type="tel"
             name="to"
             id="to"
-            value={this.state.message.to}
+            value={this.props.contact.phone.split("-").join("")}
             onChange={this.onHandleChange}
           />
         </div>
