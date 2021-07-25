@@ -42,14 +42,28 @@ app.post('/api/messages', (req, res) => {
 
 app.post('/api/bulk_messages', (req, res) => {
   console.log(req.body)
+  // console.log(req.body.message)
   res.header('Content-Type', 'application/json');
-  client.notify.services(notifyServiceSid)
-      .notifications.create({
-        toBinding: JSON.stringify(req.body[0]),
-        body: 'This is Nick. I just sent a bulk text message!'
-      })
-      .then(notification => console.log(notification.sid))
-      .catch(error => console.log("send error: ", error));
+//   client.notify.services(notifyServiceSid)
+//       .notifications.create({
+//         toBinding: JSON.stringify(req.body),
+//         body: "jklfdjkldsajfkldsa"
+//       })
+//       .then(notification => console.log(notification.sid))
+//       .catch(error => console.log("send error: ", error));
+  Promise.all(
+    req.body.numbers.map(number => {
+      return client.messages.create({
+        to: number,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        body: req.body.message
+      });
+  })
+)
+  .then(messages => {
+    console.log('Messages sent!');
+  })
+  .catch(err => console.error(err));
 });
 
 

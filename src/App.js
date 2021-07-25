@@ -43,10 +43,10 @@ const contactData = [
     middle_name: 'A',
     last_name: "Black",
     organization: 'Flint Avenue',
-    photo: '',
-    workPhone:'813-391-1719',
+    photo: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8cHJvZmlsZXxlbnwwfHwwfHw%3D&ixlib=rb-1.2.1&w=1000&q=80',
+    workPhone:'813-555-1719',
     email: 'nick@flintavenue.com',
-    birthday: new Date(1985, 0, 1),
+    birthday: new Date(1979, 11, 2),
     title: 'Software Developer',
     url: '',
     note: 'Lets hope this works',
@@ -57,10 +57,10 @@ const contactData = [
     middle_name: '',
     last_name: "Scott",
     organization: 'Dunder Mifflin',
-    photo: '',
+    photo: 'https://pbs.twimg.com/profile_images/660251274206515200/BQaWkc10_400x400.jpg',
     workPhone:'412-555-1212',
     email: 'mike@dm.com',
-    birthday: new Date(1985, 0, 1),
+    birthday: new Date(1975, 10, 5),
     title: 'Paper Sales',
     url: '',
     note: 'Worlds Best Boss',
@@ -71,10 +71,10 @@ const contactData = [
     middle_name: 'E',
     last_name: "Coyote",
     organization: 'ACME Corporation',
-    photo: '',
-    workPhone:'512-945-5555',
+    photo: 'https://pbs.twimg.com/profile_images/1324738945184419843/pYyZ72lj.jpg',
+    workPhone:'512-555-3874',
     email: 'beepbeep@zoom.com',
-    birthday: new Date(1985, 0, 1),
+    birthday: new Date(1953, 6, 4),
     title: 'Engineer',
     url: '',
     note: 'Painting tunnels is my special',
@@ -96,6 +96,8 @@ function createData(id, first, last, email, phone) {
 
 const App = () => {
   const [show, setShow] = useState(false);
+  const [showGroup, setShowGroup] = useState(false);
+  const [groupMessage, setGroupMessage] = useState('');
   const [currentContact, setCurrentContact] = useState(false);
   const [currentMultiContact, setCurrentMultiContact] = useState([]);
   const [mulitSelect, setMultiSelect] = useState({
@@ -105,6 +107,7 @@ const App = () => {
   });
 
   const handleClose = () => setShow(false);
+  const handleGroupClose = () => setShowGroup(false);
   const handleShow = () => setShow(true);
 
   const handleSendMessage = (contact) => {
@@ -118,24 +121,18 @@ const App = () => {
       [contact.id]: !mulitSelect[contact.id]
     }))
     let selected = [...currentMultiContact]
+    let contactIdx = selected.map((e) => { return e.id; }).indexOf(contact.id);
+    console.log(contactIdx, contact)
+    if(contactIdx === -1) {
     setCurrentMultiContact([...selected, contact])
     // setShow(true)
+    } else {
+      selected.splice(contactIdx, 1)
+      setCurrentMultiContact([...selected])
+    }
   }
 
-  const handleSendGroup = () => {
-    let binding = []
-    currentMultiContact.forEach(contact => {
-      binding.push({binding_type: 'sms', address: `+1${contact.phone.split("-").join("")}`})
-    })
 
-    fetch('/api/bulk_messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(binding)
-    })
-  }
 
   const SendMessageModal = () => {
     
@@ -150,6 +147,63 @@ const App = () => {
       <Modal.Footer>
         <Button variant="secondary" onClick={handleClose}>
           Close
+        </Button>
+      </Modal.Footer>
+    </Modal>
+    )
+  }
+
+  const SendGroupMessageModal = () => {
+    const [message, setMessage] = useState("")
+
+    const handleSendGroup = () => {
+      let groupChat = {
+        binding: [],
+        numbers: [],
+        message: message
+      }
+      currentMultiContact.forEach(contact => {
+        groupChat.numbers.push(contact.phone.split("-").join(""))
+        // groupChat.binding.push({binding_type: 'sms', address: `+1${contact.phone.split("-").join("")}`})
+      })
+  
+      
+      fetch('/api/bulk_messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(groupChat)
+      }).then(
+        console.log("binding", groupChat.binding)
+
+      )
+    }
+
+    const handleSend = () =>{
+      handleSendGroup()
+      handleGroupClose()
+    }
+    
+    return (
+      <Modal show={showGroup} onHide={handleGroupClose}>
+      <Modal.Header>
+        <Modal.Title>Send Message</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+      <textarea
+            name="groupMessage"
+            id="groupMessage"
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+          />
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={handleSend}>
+          Send
+        </Button>
+        <Button variant="secondary" onClick={handleGroupClose}>
+          Cancel
         </Button>
       </Modal.Footer>
     </Modal>
@@ -172,7 +226,7 @@ const App = () => {
         vCard.middleName = activeContact[0].middle_name;
         vCard.lastName = activeContact[0].last_name;
         vCard.organization = activeContact[0].organization;
-        vCard.photo.attachFromUrl('https://avatars2.githubusercontent.com/u/5659221?v=3&s=460', 
+        vCard.photo.attachFromUrl(activeContact[0].photo, 
     'JPEG');
         vCard.workPhone = activeContact[0].workPhone;
         vCard.birthday = activeContact[0].birthday;
@@ -188,6 +242,42 @@ const App = () => {
          
         //get as formatted string
         console.log(vCard.getFormattedString());
+    };
+
+    const handleDownloadGroup = (id) => {
+
+      var vCardsJS = require('vcards-js');
+
+      let newCard = []
+      let blob;
+     
+      currentMultiContact.forEach(contact => {
+        //create a new vCard
+        var vCard = vCardsJS();
+         
+        //set properties
+        vCard.firstName = contact.first_name;
+        vCard.middleName = contact.middle_name;
+        vCard.lastName = contact.last_name;
+        vCard.organization = contact.organization;
+        vCard.photo.attachFromUrl(contact.photo)
+        vCard.workPhone = contact.workPhone;
+        vCard.birthday = contact.birthday;
+        vCard.title = contact.title;
+        vCard.url = contact.url;
+        vCard.note = contact.note;
+         
+
+        newCard.push(vCard)
+        //save to file
+        // vCard.saveToFile('./eric-nesser.vcf');
+      })
+          blob = new Blob([ newCard.forEach(card=>card.getFormattedString()) ], {type: "text/vcard;charset=utf-8"});
+          // console.log(vCard.getFormattedString());
+      const FileSaver = require('file-saver');
+      FileSaver.saveAs(blob, "phoneListContact.vcf");
+         
+        //get as formatted string
     };
 
     // useEffect(() => {
@@ -265,13 +355,18 @@ const App = () => {
              {currentMultiContact.map((contact) =>(
               <h5>{contact.first} {contact.last}</h5>
              ))}
-             <Button onClick={handleSendGroup}>send group message</Button>
+             <Button onClick={() => setShowGroup(true)}>send group message</Button>
+             <Button className="mt-2" onClick={handleDownloadGroup}>Download group contacts</Button>
           </Row>
           }
 
           <SendMessageModal 
             show={show}
             onHide={() => setShow(false)}
+          />
+          <SendGroupMessageModal 
+            show={showGroup}
+            onHide={() => setShowGroup(false)}
           />
         </Container>
     );
